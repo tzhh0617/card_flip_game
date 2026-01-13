@@ -1,0 +1,37 @@
+name: card_flip_game
+description: "A fun card flip memory game for kids with cartoon themes."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Flame 游戏引擎
+  flame: ^1.21.0
+  flame_audio: ^2.10.5
+
+  # 本地存储
+  shared_preferences: ^2.3.3
+
+  # 图标
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/themes/
+    - assets/images/characters/
+    - assets/images/effects/
+    - assets/audio/
