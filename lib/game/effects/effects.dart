@@ -24,9 +24,12 @@ class StarBurstEffect extends PositionComponent with HasGameReference<CardFlipGa
   PositionComponent _createStar(int index) {
     final angle = (2 * pi / starCount) * index;
     final distance = 50.0 + _random.nextDouble() * 30;
+    final starSize = 10.0 + _random.nextDouble() * 6;
 
-    final star = CircleComponent(
-      radius: 6 + _random.nextDouble() * 4,
+    final star = StarComponent(
+      points: 5,
+      innerRadius: starSize * 0.4,
+      outerRadius: starSize,
       paint: Paint()..color = _getStarColor(index),
       anchor: Anchor.center,
     );
@@ -38,6 +41,13 @@ class StarBurstEffect extends PositionComponent with HasGameReference<CardFlipGa
           duration: 0.5,
           curve: Curves.easeOut,
         ),
+      ),
+    );
+
+    star.add(
+      RotateEffect.by(
+        pi * 2,
+        EffectController(duration: 0.5),
       ),
     );
 
@@ -66,6 +76,8 @@ class StarBurstEffect extends PositionComponent with HasGameReference<CardFlipGa
       Colors.cyan,
       Colors.lightGreen,
       Colors.purple,
+      Colors.amber,
+      Colors.red,
     ];
     return colors[index % colors.length];
   }
@@ -76,6 +88,50 @@ class StarBurstEffect extends PositionComponent with HasGameReference<CardFlipGa
     Future.delayed(const Duration(milliseconds: 700), () {
       removeFromParent();
     });
+  }
+}
+
+/// Custom 5-point star component
+class StarComponent extends PositionComponent {
+  final int points;
+  final double innerRadius;
+  final double outerRadius;
+  final Paint paint;
+
+  StarComponent({
+    this.points = 5,
+    required this.innerRadius,
+    required this.outerRadius,
+    required this.paint,
+    super.anchor,
+  }) : super(size: Vector2.all(outerRadius * 2));
+
+  @override
+  void render(Canvas canvas) {
+    final path = _createStarPath();
+    canvas.drawPath(path, paint);
+  }
+
+  Path _createStarPath() {
+    final path = Path();
+    final centerX = outerRadius;
+    final centerY = outerRadius;
+    final angleStep = pi / points;
+
+    for (int i = 0; i < points * 2; i++) {
+      final radius = i.isEven ? outerRadius : innerRadius;
+      final angle = i * angleStep - pi / 2;
+      final x = centerX + radius * cos(angle);
+      final y = centerY + radius * sin(angle);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
   }
 }
 
@@ -99,10 +155,11 @@ class HeartRainEffect extends PositionComponent with HasGameReference<CardFlipGa
   PositionComponent _createHeart() {
     final screenWidth = game.size.x;
     final startX = _random.nextDouble() * screenWidth;
+    final heartSize = 12.0 + _random.nextDouble() * 12;
 
-    final heart = CircleComponent(
-      radius: 8 + _random.nextDouble() * 8,
-      paint: Paint()..color = Colors.pink.withValues(alpha: 0.8),
+    final heart = HeartComponent(
+      size: heartSize,
+      color: _getHeartColor(),
       position: Vector2(startX, -20),
       anchor: Anchor.center,
     );
@@ -122,8 +179,20 @@ class HeartRainEffect extends PositionComponent with HasGameReference<CardFlipGa
 
     heart.add(
       RotateEffect.by(
-        pi * 2 * (_random.nextBool() ? 1 : -1),
+        pi * 0.5 * (_random.nextBool() ? 1 : -1),
         EffectController(duration: duration),
+      ),
+    );
+
+    // Scale pulsing
+    heart.add(
+      ScaleEffect.by(
+        Vector2.all(1.2),
+        EffectController(
+          duration: 0.3,
+          reverseDuration: 0.3,
+          infinite: true,
+        ),
       ),
     );
 
@@ -132,12 +201,67 @@ class HeartRainEffect extends PositionComponent with HasGameReference<CardFlipGa
     return heart;
   }
 
+  Color _getHeartColor() {
+    final colors = [
+      Colors.pink,
+      Colors.red,
+      Colors.pinkAccent,
+      Colors.redAccent,
+    ];
+    return colors[_random.nextInt(colors.length)];
+  }
+
   @override
   void onMount() {
     super.onMount();
     Future.delayed(const Duration(seconds: 3), () {
       removeFromParent();
     });
+  }
+}
+
+/// Custom heart shape component
+class HeartComponent extends PositionComponent {
+  final double heartSize;
+  final Color color;
+
+  HeartComponent({
+    required double size,
+    required this.color,
+    super.position,
+    super.anchor,
+  }) : heartSize = size, super(size: Vector2.all(size));
+
+  @override
+  void render(Canvas canvas) {
+    final paint = Paint()..color = color;
+    final path = _createHeartPath();
+    canvas.drawPath(path, paint);
+  }
+
+  Path _createHeartPath() {
+    final path = Path();
+    final width = heartSize;
+    final height = heartSize;
+
+    path.moveTo(width / 2, height * 0.35);
+
+    // Left curve
+    path.cubicTo(
+      width * 0.15, height * 0.0,
+      width * -0.1, height * 0.5,
+      width / 2, height,
+    );
+
+    // Right curve
+    path.moveTo(width / 2, height * 0.35);
+    path.cubicTo(
+      width * 0.85, height * 0.0,
+      width * 1.1, height * 0.5,
+      width / 2, height,
+    );
+
+    return path;
   }
 }
 
@@ -295,6 +419,7 @@ class BalloonEffect extends PositionComponent with HasGameReference<CardFlipGame
     final screenHeight = game.size.y;
     position = Vector2(startX, screenHeight + 50);
 
+    // Balloon body with gradient effect
     final balloon = CircleComponent(
       radius: 25,
       paint: Paint()..color = color,
@@ -302,23 +427,70 @@ class BalloonEffect extends PositionComponent with HasGameReference<CardFlipGame
     );
     add(balloon);
 
-    final string = RectangleComponent(
-      size: Vector2(2, 30),
-      paint: Paint()..color = Colors.grey,
-      anchor: Anchor.topCenter,
+    // Balloon highlight (shine effect)
+    final highlight = CircleComponent(
+      radius: 8,
+      paint: Paint()..color = Colors.white.withValues(alpha: 0.4),
+      anchor: Anchor.center,
+      position: Vector2(-8, -8),
+    );
+    balloon.add(highlight);
+
+    // Balloon knot
+    final knot = CircleComponent(
+      radius: 4,
+      paint: Paint()..color = color.withValues(alpha: 0.8),
+      anchor: Anchor.center,
       position: Vector2(0, 25),
+    );
+    add(knot);
+
+    // Balloon string (curvy)
+    final string = RectangleComponent(
+      size: Vector2(2, 35),
+      paint: Paint()..color = Colors.grey.shade600,
+      anchor: Anchor.topCenter,
+      position: Vector2(0, 29),
     );
     add(string);
 
-    final duration = 3.0 + _random.nextDouble() * 2.0;
-    final wobble = (_random.nextDouble() - 0.5) * 60;
+    final duration = 3.5 + _random.nextDouble() * 2.0;
+    final wobbleAmount = 40.0 + _random.nextDouble() * 30;
 
+    // Main upward movement
     add(
       MoveToEffect(
-        Vector2(startX + wobble, -100),
+        Vector2(startX, -100),
         EffectController(
           duration: duration,
           curve: Curves.easeOut,
+        ),
+      ),
+    );
+
+    // Side-to-side wobble
+    add(
+      MoveByEffect(
+        Vector2(wobbleAmount, 0),
+        EffectController(
+          duration: 0.8,
+          reverseDuration: 0.8,
+          infinite: true,
+          curve: Curves.easeInOut,
+          startDelay: _random.nextDouble() * 0.5,
+        ),
+      ),
+    );
+
+    // Gentle rotation wobble
+    add(
+      RotateEffect.by(
+        0.15,
+        EffectController(
+          duration: 0.6,
+          reverseDuration: 0.6,
+          infinite: true,
+          curve: Curves.easeInOut,
         ),
       ),
     );
@@ -537,15 +709,17 @@ class FallingStarEffect extends PositionComponent with HasGameReference<CardFlip
   PositionComponent _createFallingStar() {
     final screenWidth = game.size.x;
     final startX = _random.nextDouble() * screenWidth;
-    final starSize = 15.0 + _random.nextDouble() * 15;
+    final starSize = 12.0 + _random.nextDouble() * 12;
 
-    // Create star shape using a rotated square (diamond) for simplicity
-    final star = _StarShape(
-      size: starSize,
-      color: Colors.amber,
+    // Use proper 5-point star
+    final star = StarComponent(
+      points: 5,
+      innerRadius: starSize * 0.4,
+      outerRadius: starSize,
+      paint: Paint()..color = _getStarColor(),
+      anchor: Anchor.center,
     );
     star.position = Vector2(startX, -30);
-    star.anchor = Anchor.center;
 
     final duration = 2.0 + _random.nextDouble() * 1.5;
     final endY = game.size.y + 50;
@@ -573,10 +747,10 @@ class FallingStarEffect extends PositionComponent with HasGameReference<CardFlip
     // Slight scale pulsing
     star.add(
       ScaleEffect.by(
-        Vector2.all(1.3),
+        Vector2.all(1.2),
         EffectController(
-          duration: 0.3,
-          reverseDuration: 0.3,
+          duration: 0.25,
+          reverseDuration: 0.25,
           infinite: true,
         ),
       ),
@@ -587,40 +761,21 @@ class FallingStarEffect extends PositionComponent with HasGameReference<CardFlip
     return star;
   }
 
+  Color _getStarColor() {
+    final colors = [
+      Colors.amber,
+      Colors.yellow,
+      Colors.orange,
+      Colors.amber.shade300,
+    ];
+    return colors[_random.nextInt(colors.length)];
+  }
+
   @override
   void onMount() {
     super.onMount();
     Future.delayed(const Duration(seconds: 4), () {
       removeFromParent();
     });
-  }
-}
-
-/// Custom star shape component
-class _StarShape extends PositionComponent {
-  final double starSize;
-  final Color color;
-
-  _StarShape({required double size, required this.color}) : starSize = size;
-
-  @override
-  Future<void> onLoad() async {
-    // Create a 4-pointed star using overlapping shapes
-    final diamond1 = RectangleComponent(
-      size: Vector2(starSize, starSize),
-      paint: Paint()..color = color,
-      anchor: Anchor.center,
-    );
-    diamond1.angle = pi / 4; // Rotate 45 degrees
-    add(diamond1);
-
-    // Inner glow effect
-    final innerStar = RectangleComponent(
-      size: Vector2(starSize * 0.6, starSize * 0.6),
-      paint: Paint()..color = Colors.yellow.shade200,
-      anchor: Anchor.center,
-    );
-    innerStar.angle = pi / 4;
-    add(innerStar);
   }
 }

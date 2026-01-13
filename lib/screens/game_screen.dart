@@ -112,108 +112,184 @@ class _GameScreenState extends State<GameScreen> {
     final encouragement = AppStrings.encouragements[
         widget.levelIndex % AppStrings.encouragements.length];
 
-    return Container(
-      color: Colors.black.withValues(alpha: 0.7),
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: theme.color.withValues(alpha: 0.3),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                '🎉 恭喜过关！🎉',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      builder: (context, opacity, child) {
+        return Container(
+          color: Colors.black.withValues(alpha: 0.7 * opacity),
+          child: Center(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.elasticOut,
+              builder: (context, scale, child) {
+                return Transform.scale(
+                  scale: scale,
+                  child: child,
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.color.withValues(alpha: 0.4),
+                      blurRadius: 25,
+                      spreadRadius: 8,
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '🏆',
-                style: TextStyle(fontSize: 64),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (i) {
-                  return TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 300 + i * 200),
-                    builder: (context, value, child) {
-                      return Transform.scale(
-                        scale: value,
-                        child: Icon(
-                          i < _stars ? Icons.star : Icons.star_border,
-                          size: 48,
-                          color: Colors.amber,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Animated title
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.bounceOut,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: const Text(
+                            '🎉 恭喜过关！🎉',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Bouncing trophy
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.elasticOut,
+                      builder: (context, value, child) {
+                        return Transform.translate(
+                          offset: Offset(0, (1 - value) * -50),
+                          child: Transform.scale(
+                            scale: value,
+                            child: const Text(
+                              '🏆',
+                              style: TextStyle(fontSize: 72),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Animated stars
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (i) {
+                        return TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 400 + i * 200),
+                          curve: Curves.elasticOut,
+                          builder: (context, value, child) {
+                            return Transform.scale(
+                              scale: value,
+                              child: Transform.rotate(
+                                angle: (1 - value) * 0.5,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Icon(
+                                    i < _stars ? Icons.star : Icons.star_border,
+                                    size: 52,
+                                    color: i < _stars ? Colors.amber : Colors.grey.shade300,
+                                    shadows: i < _stars
+                                        ? [
+                                            Shadow(
+                                              color: Colors.amber.withValues(alpha: 0.5),
+                                              blurRadius: 10,
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '翻牌次数: $_flipCount',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Animated encouragement
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOut,
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.translate(
+                            offset: Offset(0, (1 - value) * 20),
+                            child: Text(
+                              encouragement,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: theme.color,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    // Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _showCelebration = false;
+                              _initGame();
+                            });
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('再玩一次'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[200],
+                            foregroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
                         ),
-                      );
-                    },
-                  );
-                }),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '翻牌次数: $_flipCount',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey[600],
+                        ElevatedButton.icon(
+                          onPressed: _goToNextLevel,
+                          icon: const Icon(Icons.arrow_forward),
+                          label: const Text('下一关'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.color,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                encouragement,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: theme.color,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showCelebration = false;
-                        _initGame();
-                      });
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('再玩一次'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[200],
-                      foregroundColor: Colors.black87,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _goToNextLevel,
-                    icon: const Icon(Icons.arrow_forward),
-                    label: const Text('下一关'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.color,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
